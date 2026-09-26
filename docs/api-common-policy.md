@@ -2,11 +2,12 @@
 
 ## 현재 구현 범위
 
-1~3단계는 오류 모델·정규화 함수, Axios 클라이언트·interceptor,
-웹 앱의 환경변수 연결과 TanStack Query Provider·캐시·재시도 설정을 제공한다.
+1~4단계는 오류 모델·정규화 함수, Axios 클라이언트·interceptor,
+웹 앱의 환경변수 연결과 TanStack Query Provider·캐시·재시도 설정,
+라우트 오류·로딩·404 화면 및 공통 오류 알림을 제공한다.
 응답 검증 유틸리티와 개별 Zod 스키마는 실제 API 연동 시 필요에 따라 추가한다.
 클라이언트 옵션 타입은 생성 함수와 같은 파일에 정의한다.
-오류 화면·공통 알림과 실제 API·카카오 인증 연동은 후속 단계에서 구현한다.
+실제 도메인 API·카카오 인증 연동은 후속 단계에서 구현한다.
 
 ## 계층별 책임
 
@@ -135,7 +136,7 @@ const useCreateRecipe = () => {
 mutation 성공 후 관련 키를 무효화하면 관찰 중인 조회는 다시 요청하고,
 사용하지 않는 조회는 다음 사용 시 갱신한다. `onSuccess`에서 무효화 Promise를 반환하면 갱신까지 기다린다.
 위 TypeScript 타입은 실제 응답을 검증하지 않는다. Zod 검증은 필요할 때 별도로 추가한다.
-SSR prefetch·hydration과 전역 오류 알림·오류 경계 연결은 현재 설정에 포함하지 않는다.
+SSR prefetch·hydration은 현재 설정에 포함하지 않는다.
 
 ## 오류 분류 및 정보 노출
 
@@ -159,7 +160,7 @@ Zod 폼 입력 검증은 폼 계층에서 처리하며 이 함수로 전달하�
 업무 `code`는 후속 명세 연동 계층에서 검증한 값만 `ApiError` 생성 시 명시적으로 전달한다.
 업무 코드는 UI에 그대로 표시하지 않는다. 원본 Axios 오류를 직접 로깅하지 않는다.
 
-## 오류 처리 정책과 후속 단계
+## 오류 처리 정책과 화면 연결
 
 | 상황 | 처리 주체·정책 |
 | --- | --- |
@@ -176,9 +177,41 @@ Zod 폼 입력 검증은 폼 계층에서 처리하며 이 함수로 전달하�
 | 예상하지 못한 렌더링 오류 | 가까운 오류 경계에서 복구 UI |
 
 interceptor는 응답 오류 정규화를 담당한다. 화면 이동·알림·일반 재시도는 실행하지 않는다.
-Query의 `meta.errorMode`는 후속 단계에서 `local | notify | boundary`로 정의하며,
-query는 local, mutation은 notify를 기본으로 한다. 백그라운드 실패는 기존 데이터를
-유지하며 알리고, boundary를 선택한 조회만 오류 경계로 전달한다. 한 실패를 중복 안내하지 않는다.
+Query의 `meta.errorMode`는 `local | notify | boundary`다. 최초 조회 실패는 기본적으로
+호출 화면의 `isError` 상태에서 표시한다(`local`). `notify`를 선택하면 공통 알림을 띄운다.
+`boundary`를 선택한 조회는 데이터가 없는 실패만 가까운 `error.tsx`로 전달한다.
+기존 데이터의 갱신 실패는 모든 모드에서 데이터를 유지하고 공통 알림을 한 번 띄운다.
+요청 취소는 알림과 오류 경계에서 제외한다.
+
+mutation은 기본적으로 공통 알림을 띄운다. 폼에서 오류를 직접 표시할 때는
+`meta: { errorMode: "local" }`을 지정해 중복 알림을 막는다. mutation 오류를
+경계로 보내려면 `meta: { errorMode: "local" }`로 중복 알림을 막고
+해당 hook에서 `throwOnError`를 명시적으로 설정한다.
+`mutateAsync` 호출부에서는 반환된 Promise의 실패도 처리해야 한다.
+
+공통 알림은 브라우저에서 가장 최근 오류 한 건을 표시하고 5초 후 닫는다.
+`ApiError`의 안전한 메시지만 사용하며 기타 오류에는 고정 문구를 표시한다.
+루트 `app/error.tsx`는 처리되지 않은 렌더링 오류에 복구 버튼을 제공한다.
+버튼은 Query 오류 경계의 재시도 제한을 해제한 뒤 라우트를 다시 렌더링한다.
+`app/not-found.tsx`는 알 수 없는 경로 및 호출부에서 `notFound()`를 선택한 경우에 표시된다.
+`app/loading.tsx`는 라우트 구간의 Suspense 로딩 UI다. 클라이언트 Query의 로딩 상태는
+실제 도메인 화면에서 별도로 표시한다. 현재 루트 layout 자체의 오류를 처리하는
+`global-error.tsx`는 추가하지 않았다.
+
+```tsx
+const recipe = useQuery({
+  ...recipeQueryOptions(id),
+  meta: { errorMode: "boundary" }, // 필수 리소스의 최초 실패를 라우트 경계로
+});
+
+const save = useMutation({
+  mutationFn: saveRecipe,
+  meta: { errorMode: "local" }, // 폼 오류 메시지로 직접 표시
+});
+```
+
+API 404를 곧바로 `notFound()`로 바꾸지 않는다. 필수 페이지 리소스 부재라고 판단한
+라우트에서만 사용한다. 현재 앱에는 해당 판단을 할 실제 도메인 호출이 없다.
 
 ## 검증
 
@@ -204,7 +237,8 @@ MSW는 개발 의존성이며 앱에 모의 API나 Service Worker를 추가하�
 [Zod 기본 사용법](https://zod.dev/basics).
 
 웹 앱의 Query 테스트는 캐시 수명·동시 요청 중복 방지·서버 인스턴스 분리·브라우저 재사용,
-오류별 재시도 횟수·mutation 무효화·Query에서 Axios로 이어지는 요청 취소를 검증한다.
+오류별 재시도 횟수·mutation 무효화·Query에서 Axios로 이어지는 요청 취소,
+최초 조회와 백그라운드 갱신·mutation 알림 정책을 검증한다.
 테스트에만 재시도 대기 시간 0과 모의 API를 사용한다.
 
 Query 구현 참고: [App Router Provider 구성](https://tanstack.com/query/v5/docs/framework/react/guides/advanced-ssr),

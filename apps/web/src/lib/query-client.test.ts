@@ -4,6 +4,7 @@ import { delay, http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { getApiClient } from "@/lib/api-client";
+import { dismissErrorNotification, getErrorNotification } from "@/lib/error-notification";
 import { getQueryClient } from "@/lib/query-client";
 
 const server = setupServer();
@@ -19,6 +20,8 @@ afterAll(() => server.close());
 afterEach(() => {
   clients.forEach((client) => client.clear());
   clients.clear();
+  const notification = getErrorNotification();
+  if (notification) dismissErrorNotification(notification.id);
   server.resetHandlers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -102,6 +105,71 @@ describe("getQueryClient", () => {
 
     await expect(mutation.execute(undefined)).rejects.toBe(error);
     expect(mutationFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("첫 조회 실패는 로컬 처리하고 notify 모드에서만 공통 알림을 띄운다", async () => {
+    vi.stubGlobal("window", {});
+    const client = clientForTest();
+    const error = new ApiError({ kind: "http", status: 403 });
+    const queryFn = vi.fn().mockRejectedValue(error);
+
+    await expect(client.fetchQuery({ queryKey: ["local"], queryFn, retry: false }))
+      .rejects.toBe(error);
+    expect(getErrorNotification()).toBeNull();
+
+    await expect(client.fetchQuery({
+      queryKey: ["notify"], queryFn, retry: false,
+      meta: { errorMode: "notify" },
+    })).rejects.toBe(error);
+    expect(getErrorNotification()?.message).toBe(error.message);
+  });
+
+  it("boundary 모드는 데이터가 없는 실패만 오류 경계로 전달한다", () => {
+    const client = clientForTest();
+    const error = new ApiError({ kind: "http", status: 500 });
+    const options = client.defaultQueryOptions({
+      queryKey: ["boundary"], meta: { errorMode: "boundary" },
+    });
+    const query = client.getQueryCache().build(client, options);
+    const shouldThrow = options.throwOnError;
+
+    expect(typeof shouldThrow).toBe("function");
+    if (typeof shouldThrow !== "function") return;
+    expect(shouldThrow(error, query)).toBe(true);
+    expect(shouldThrow(new ApiRequestCanceledError(), query)).toBe(false);
+    client.setQueryData(["boundary"], { id: 1 });
+    expect(shouldThrow(error, query)).toBe(false);
+  });
+
+  it("기존 데이터 갱신 실패는 데이터를 유지하고 한 번 알린다", async () => {
+    vi.stubGlobal("window", {});
+    const client = clientForTest();
+    const error = new ApiError({ kind: "network" });
+    client.setQueryData(["recipes"], [1]);
+
+    await expect(client.fetchQuery({
+      queryKey: ["recipes"], queryFn: async () => { throw error; },
+      staleTime: 0, retry: false,
+    })).rejects.toBe(error);
+    expect(client.getQueryData(["recipes"])).toEqual([1]);
+    expect(getErrorNotification()?.message).toBe(error.message);
+  });
+
+  it("mutation 실패는 기본 알림을 띄우고 local 모드는 알리지 않는다", async () => {
+    vi.stubGlobal("window", {});
+    const client = clientForTest();
+    const error = new ApiError({ kind: "http", status: 400 });
+    const mutationFn = vi.fn().mockRejectedValue(error);
+
+    await expect(client.getMutationCache().build(client, { mutationFn })
+      .execute(undefined)).rejects.toBe(error);
+    expect(getErrorNotification()?.message).toBe(error.message);
+    dismissErrorNotification(getErrorNotification()!.id);
+
+    await expect(client.getMutationCache().build(client, {
+      mutationFn, meta: { errorMode: "local" },
+    }).execute(undefined)).rejects.toBe(error);
+    expect(getErrorNotification()).toBeNull();
   });
 
   it("mutation 성공 후 관련 키만 무효화해 다음 조회에서 갱신한다", async () => {
