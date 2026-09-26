@@ -1,4 +1,8 @@
 export {
+  createApiClient,
+  type ApiClientOptions,
+} from "./client/create-api-client";
+export {
   ApiError,
   ApiRequestCanceledError,
   type ApiErrorKind,
