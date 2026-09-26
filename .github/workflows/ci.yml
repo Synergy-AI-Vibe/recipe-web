@@ -19,5 +19,7 @@ jobs:
           cache: "pnpm"
 
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @recipe-web/api typecheck
+      - run: pnpm --filter @recipe-web/api test
       - run: pnpm lint
       - run: pnpm build
