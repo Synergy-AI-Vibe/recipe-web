@@ -2,11 +2,11 @@
 
 ## 현재 구현 범위
 
-1·2단계는 오류 모델·정규화 함수, Axios 클라이언트·interceptor,
-웹 앱의 환경변수 연결을 제공한다.
+1~3단계는 오류 모델·정규화 함수, Axios 클라이언트·interceptor,
+웹 앱의 환경변수 연결과 TanStack Query Provider·캐시·재시도 설정을 제공한다.
 응답 검증 유틸리티와 개별 Zod 스키마는 실제 API 연동 시 필요에 따라 추가한다.
 클라이언트 옵션 타입은 생성 함수와 같은 파일에 정의한다.
-Query Provider, 오류 화면, 실제 API·카카오 인증 연동은 아직 구현하지 않았다.
+오류 화면·공통 알림과 실제 API·카카오 인증 연동은 후속 단계에서 구현한다.
 
 ## 계층별 책임
 
@@ -72,6 +72,71 @@ Content-Type을 일괄 고정하지 않아 JSON·FormData 등은 Axios가 처리
 생성은 최초 호출까지 지연되므로 API를 사용하지 않는 초기 페이지는 주소 미설정 상태에서도 동작한다.
 브라우저 쿠키 전송의 실제 성공 여부는 추후 백엔드 CORS·쿠키 정책과 함께 검증한다.
 
+## TanStack Query 설정과 사용
+
+`apps/web/src/components/providers.tsx`가 `QueryClientProvider`를 제공하며 루트 layout의 children을 감싼다.
+layout은 Server Component로 유지한다. Devtools는 개발 환경에서만 표시한다.
+`@/lib/query-client`의 `getQueryClient()`는 브라우저에서 같은 인스턴스를 재사용하고,
+서버에서는 호출마다 새 인스턴스를 반환해 요청 간 캐시 공유를 방지한다.
+
+| 설정 | 기본 동작 |
+| --- | --- |
+| `staleTime` | 1분. 이 기간에는 같은 키의 캐시를 재사용 |
+| `gcTime` | 브라우저에서 사용하지 않는 캐시를 5분 후 제거; 서버는 타이머 없이 인스턴스 수명에 따름 |
+| `refetchOnWindowFocus` | false |
+| `refetchOnReconnect` | true. 연결 복구 시 관찰 중인 오래된 조회를 갱신 |
+| query `retry` | 정규화된 네트워크·타임아웃·5xx 오류만 1회 재시도; 최초 요청 포함 최대 2회 |
+| mutation `retry` | false |
+
+재시도 간격은 TanStack Query 기본값을 사용한다. 4xx·취소·검증·알 수 없는 오류는 재시도하지 않는다.
+각 API 함수는 성공 시 응답 데이터를 반환하고 실패 시 오류를 그대로 throw한다.
+조회 함수의 `signal`을 Axios 요청에 전달해야 Query 취소 시 HTTP 요청도 중단된다.
+서버 데이터는 Query 캐시에서 관리하고 Zustand에 복사하지 않는다.
+
+아래는 실제 API 연동 시 사용할 작성 예시다. 엔드포인트와 타입은 실제 명세에 맞춘다.
+현재 앱에는 도메인별 query key·hook·API 함수나 가짜 요청을 추가하지 않았다.
+
+```tsx
+// Client Component에서 사용하는 도메인별 Query 정의 예시
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getApiClient } from "@/lib/api-client";
+
+type Recipe = { id: number; title: string };
+
+const recipeKeys = {
+  all: ["recipes"] as const,
+  detail: (id: number) => ["recipes", "detail", id] as const,
+};
+
+const recipeQueryOptions = (id: number) => queryOptions({
+  queryKey: recipeKeys.detail(id),
+  queryFn: async ({ signal }) => {
+    const response = await getApiClient().get<Recipe>(`/recipes/${id}`, { signal });
+    return response.data;
+  },
+});
+
+const useRecipe = (id: number) => useQuery(recipeQueryOptions(id));
+
+const useCreateRecipe = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { title: string }) => {
+      const response = await getApiClient().post<Recipe>("/recipes", input);
+      return response.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: recipeKeys.all }),
+  });
+};
+```
+
+조회 결과에 영향을 주는 ID·검색어·페이지 등은 query key에 포함한다.
+mutation 성공 후 관련 키를 무효화하면 관찰 중인 조회는 다시 요청하고,
+사용하지 않는 조회는 다음 사용 시 갱신한다. `onSuccess`에서 무효화 Promise를 반환하면 갱신까지 기다린다.
+위 TypeScript 타입은 실제 응답을 검증하지 않는다. Zod 검증은 필요할 때 별도로 추가한다.
+SSR prefetch·hydration과 전역 오류 알림·오류 경계 연결은 현재 설정에 포함하지 않는다.
+
 ## 오류 분류 및 정보 노출
 
 | 입력 | 정규화 결과 |
@@ -94,13 +159,13 @@ Zod 폼 입력 검증은 폼 계층에서 처리하며 이 함수로 전달하�
 업무 `code`는 후속 명세 연동 계층에서 검증한 값만 `ApiError` 생성 시 명시적으로 전달한다.
 업무 코드는 UI에 그대로 표시하지 않는다. 원본 Axios 오류를 직접 로깅하지 않는다.
 
-## 후속 단계에서 적용할 처리 정책
+## 오류 처리 정책과 후속 단계
 
 | 상황 | 처리 주체·정책 |
 | --- | --- |
 | 요청 취소 | 알림·재시도·오류 경계에서 제외 |
-| 네트워크·타임아웃·5xx | 조회만 1회 재시도; mutation 자동 재시도 없음 |
-| 4xx·응답 검증·알 수 없는 오류 | 자동 재시도 없음 |
+| 네트워크·타임아웃·5xx | 3단계 적용: 조회만 1회 재시도; mutation 자동 재시도 없음 |
+| 4xx·응답 검증·알 수 없는 오류 | 3단계 적용: 자동 재시도 없음 |
 | 401 | 인증 연동 단계에서 후속 처리 추가; 현재는 정규화된 오류 전달 |
 | 403 | 화면에서 권한 부족 안내 |
 | API 404 | 호출 화면이 의미 판단; 필수 페이지 리소스 부재일 때만 `notFound()` |
@@ -120,6 +185,10 @@ query는 local, mutation은 notify를 기본으로 한다. 백그라운드 실�
 ```bash
 pnpm --filter @recipe-web/api test
 pnpm --filter @recipe-web/api typecheck
+pnpm --filter web test
+pnpm --filter web exec next typegen
+pnpm --filter web exec tsc --noEmit
+pnpm lint
 ```
 
 테스트는 실제 네트워크·인증 서버 없이 HTTP 상태별 메시지, 통신 실패 분류,
@@ -133,3 +202,12 @@ MSW는 개발 의존성이며 앱에 모의 API나 Service Worker를 추가하�
 구현 참고: [Axios interceptor](https://axios-http.com/docs/interceptors),
 [MSW Node 통합](https://mswjs.io/docs/integrations/node/),
 [Zod 기본 사용법](https://zod.dev/basics).
+
+웹 앱의 Query 테스트는 캐시 수명·동시 요청 중복 방지·서버 인스턴스 분리·브라우저 재사용,
+오류별 재시도 횟수·mutation 무효화·Query에서 Axios로 이어지는 요청 취소를 검증한다.
+테스트에만 재시도 대기 시간 0과 모의 API를 사용한다.
+
+Query 구현 참고: [App Router Provider 구성](https://tanstack.com/query/v5/docs/framework/react/guides/advanced-ssr),
+[재시도](https://tanstack.com/query/v5/docs/framework/react/guides/query-retries),
+[요청 취소](https://tanstack.com/query/v5/docs/framework/react/guides/query-cancellation),
+[Devtools](https://tanstack.com/query/v5/docs/framework/react/devtools).
