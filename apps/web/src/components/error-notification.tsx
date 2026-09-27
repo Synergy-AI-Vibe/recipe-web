@@ -27,13 +27,13 @@ export const ErrorNotification = () => {
   if (!notification) return null;
 
   return (
-    <div role="alert" className="fixed right-4 bottom-4 z-50 flex max-w-sm items-center gap-4 rounded-lg bg-zinc-900 px-4 py-3 text-sm text-white shadow-lg dark:bg-zinc-100 dark:text-zinc-900">
+    <div role="alert" className="fixed right-4 bottom-4 z-30 flex max-w-sm items-center gap-4 rounded-lg bg-text px-4 py-3 text-sm text-on-ink shadow-toast">
       <p>{notification.message}</p>
       <button
         type="button"
         aria-label="알림 닫기"
         onClick={() => dismissErrorNotification(notification.id)}
-        className="shrink-0 rounded px-2 py-1 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current dark:hover:bg-black/10"
+        className="shrink-0 rounded px-2 py-1 hover:bg-on-ink/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
       >
         닫기
       </button>
