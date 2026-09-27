@@ -77,6 +77,9 @@ Content-Type을 일괄 고정하지 않아 JSON·FormData 등은 Axios가 처리
 
 `apps/web/src/components/providers.tsx`가 `QueryClientProvider`를 제공하며 루트 layout의 children을 감싼다.
 layout은 Server Component로 유지한다. Devtools는 개발 환경에서만 표시한다.
+루트에서는 TanStack Query의 기본 오류 재설정 동작을 사용한다. 추후 searchProvider,
+resultProvider처럼 특정 영역만 다시 시도해야 할 때 해당 영역의 오류 경계와 함께
+`QueryErrorResetBoundary`를 배치한다.
 `@/lib/query-client`의 `getQueryClient()`는 브라우저에서 같은 인스턴스를 재사용하고,
 서버에서는 호출마다 새 인스턴스를 반환해 요청 간 캐시 공유를 방지한다.
 
@@ -192,7 +195,7 @@ mutation 오류를 경계로 보내려면 같은 `local` 설정으로 공통 알
 공통 알림은 브라우저에서 가장 최근 오류 한 건을 표시하고 5초 후 닫는다.
 `ApiError`의 안전한 메시지만 사용하며 기타 오류에는 고정 문구를 표시한다.
 루트 `app/error.tsx`는 처리되지 않은 렌더링 오류에 복구 버튼을 제공한다.
-버튼은 Query 오류 경계의 재시도 제한을 해제한 뒤 라우트를 다시 렌더링한다.
+버튼은 Query 오류의 재시도 제한을 해제한 뒤 라우트를 다시 렌더링한다.
 `app/not-found.tsx`는 알 수 없는 경로 및 호출부에서 `notFound()`를 선택한 경우에 표시된다.
 `app/loading.tsx`는 라우트 구간의 Suspense 로딩 UI다. 클라이언트 Query의 로딩 상태는
 실제 도메인 화면에서 별도로 표시한다. 현재 루트 layout 자체의 오류를 처리하는
