@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+// 11_디자인시스템 6항 — 고정·겹침 요소는 이 셋뿐입니다.
 const usages = [
-  { name: "Modal", value: "z-20" },
-  { name: "Toast", value: "z-30" },
+  { name: "결과 탭바 (sticky)", value: "z-4" },
+  { name: "계정 드롭다운 (absolute)", value: "z-10" },
+  { name: "토스트 (fixed)", value: "z-30" },
 ];
 
 const meta: Meta = {
