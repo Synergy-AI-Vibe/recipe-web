@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
-import { cn } from "../../lib/cn";
+import { cn } from "../../lib/merge-class-names";
 
 type NoticeCardProps = Omit<ComponentProps<"section">, "title"> & {
   /**

@@ -1,5 +1,5 @@
 import type { ComponentPropsWithRef, ElementType } from "react";
-import { cn } from "../../lib/cn";
+import { cn } from "../../lib/merge-class-names";
 
 type TextLinkProps<T extends ElementType> = {
   /**

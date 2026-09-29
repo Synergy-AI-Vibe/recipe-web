@@ -165,5 +165,5 @@ packages/ui/src/
 ## 착수 전 설정
 
 1. **Tailwind 스캔 경로** — Tailwind v4 자동 감지는 `apps/web` 기준이라 `packages/ui/src`의 클래스를 놓칠 수 있다. `theme.css`에 `@source "../";`를 추가해 ui 소스를 스캔 대상에 넣는다. 첫 컴포넌트를 `apps/web`에 띄워 스타일이 적용되는지 확인한다.
-2. **className 병합** — `clsx` + `tailwind-merge`를 `packages/ui` 의존성에 추가하고 `lib/cn.ts`로 감싼다. 호출하는 쪽의 `className`이 기본 스타일을 확실히 덮게 하기 위함이다. `apps/web`에서도 `@recipe-web/ui`의 `cn`을 가져다 쓴다.
+2. **className 병합** — `clsx` + `tailwind-merge`를 `packages/ui` 의존성에 추가하고 `lib/merge-class-names.ts`로 감싼다. 호출하는 쪽의 `className`이 기본 스타일을 확실히 덮게 하기 위함이다. `apps/web`에서도 `@recipe-web/ui`의 `cn`을 가져다 쓴다.
    `tailwind-merge`는 커스텀 글자 크기 클래스(`text-h4`, `text-b3` …)를 색 클래스(`text-text-2`)와 구분하지 못해 둘 중 하나를 지운다. `extendTailwindMerge`로 `font-size` 그룹에 단계 이름을 등록한다.

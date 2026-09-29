@@ -1,4 +1,4 @@
-export { cn } from "./lib/cn";
+export { cn } from "./lib/merge-class-names";
 
 export { Banner } from "./components/banner/banner";
 export { Button } from "./components/button/button";
