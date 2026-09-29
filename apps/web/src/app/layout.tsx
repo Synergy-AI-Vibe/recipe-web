@@ -9,7 +9,7 @@ import "./globals.css";
 const notoSansKr = Noto_Sans_KR({
   variable: "--font-noto-sans-kr",
   subsets: ["latin"],
-  weight: ["400", "500", "700", "900"],
+  // weight를 생략하면 가변 글꼴 하나로 모든 굵기를 씁니다. 굵기별로 받으면 글꼴 선언과 파일이 4배가 됩니다
 });
 
 export const metadata: Metadata = {
