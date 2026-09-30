@@ -1,8 +1,4 @@
 @import "tailwindcss";
-@import "@fontsource/noto-sans-kr/400.css";
-@import "@fontsource/noto-sans-kr/500.css";
-@import "@fontsource/noto-sans-kr/700.css";
-@import "@fontsource/noto-sans-kr/900.css";
 
 @source "../"; /* apps/web에서 import해도 ui 소스의 클래스를 스캔하도록 */
 
@@ -55,7 +51,9 @@
   --spacing-section-auth: clamp(40px, 6vw, 72px); /* 로그인 · 탈퇴 위 */
   --spacing-section-end: clamp(48px, 7vw, 80px); /* 화면 끝 */
 
-  --font-sans: var(--font-noto-sans-kr), "Noto Sans KR", system-ui, sans-serif;
+  /* 웹 앱은 next/font가 --font-noto-sans-kr를 정의합니다. 없으면(Storybook) fontsource로 불러온 "Noto Sans KR"을 씁니다.
+     대체값 없이 var()를 쓰면 변수가 없을 때 font-family 선언 전체가 무효가 됩니다. */
+  --font-sans: var(--font-noto-sans-kr, "Noto Sans KR"), system-ui, sans-serif;
 
   /* 글자 크기 단계 — 11_디자인시스템 2-1항 */
   --text-d1: clamp(52px, 8.5vw, 84px); /* 절약 금액 */
