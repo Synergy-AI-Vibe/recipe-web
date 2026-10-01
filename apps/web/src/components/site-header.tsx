@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { showToast } from "@recipe-web/ui";
 import { AccountMenu } from "@/components/account-menu";
 import { LoginDialog, loginPendingKey } from "@/components/login-dialog";
-import { useSession } from "@/hooks/use-session";
+import { useSession } from "@/queries/auth";
 
 export const SiteHeader = () => {
   const pathname = usePathname();

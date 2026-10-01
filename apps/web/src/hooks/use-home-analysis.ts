@@ -1,12 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { analyzeRecipe, type AnalyzeRequest } from "@recipe-web/api";
 import type {
   InputError,
   InputMode,
 } from "@/components/home/recipe-input";
-import { getApiClient } from "@/lib/api-client";
 import { isYoutubeUrl } from "@/lib/is-youtube-url";
+import { useAnalyzeRecipe } from "@/queries/analyze";
 
 export const useHomeAnalysis = () => {
   const [mode, setMode] = useState<InputMode>("youtube");
@@ -15,10 +13,7 @@ export const useHomeAnalysis = () => {
   const [recoveryText, setRecoveryText] = useState("");
   const [inputError, setInputError] = useState<InputError>(null);
   const [recoveryError, setRecoveryError] = useState(false);
-  const analyze = useMutation({
-    mutationFn: (input: AnalyzeRequest) => analyzeRecipe(getApiClient(), input),
-    meta: { errorMode: "local" },
-  });
+  const analyze = useAnalyzeRecipe();
 
   const resetAll = () => {
     setMode("youtube");

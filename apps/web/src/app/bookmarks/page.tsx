@@ -1,39 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteBookmark, getBookmarks, type BookmarkList } from "@recipe-web/api";
 import { Banner, List, ListRow } from "@recipe-web/ui";
-import { useSession } from "@/hooks/use-session";
-import { getApiClient } from "@/lib/api-client";
-
-const bookmarksQueryKey = ["bookmarks"] as const;
+import { useSession } from "@/queries/auth";
+import { useBookmarks, useDeleteBookmark } from "@/queries/bookmarks";
 
 export default function BookmarksPage() {
   const session = useSession();
-  const queryClient = useQueryClient();
   const [failedId, setFailedId] = useState<number | null>(null);
-  const bookmarks = useQuery({
-    queryKey: bookmarksQueryKey,
-    queryFn: () => getBookmarks(getApiClient()),
-    enabled: session.data?.authenticated === true,
-    refetchOnMount: "always",
-    meta: { errorMode: "local" },
-  });
-  const removal = useMutation({
-    mutationFn: (id: number) => deleteBookmark(getApiClient(), id),
-    meta: { errorMode: "local" },
-    onSuccess: (_data, id) => {
-      setFailedId(null);
-      queryClient.setQueryData<BookmarkList>(bookmarksQueryKey, (current) => {
-        if (!current) return current;
-        const items = current.items.filter((item) => item.id !== id);
-        return { ...current, items, count: items.length };
-      });
-      queryClient.invalidateQueries({ queryKey: bookmarksQueryKey });
-    },
-    onError: (_error, id) => setFailedId(id),
-  });
+  const bookmarks = useBookmarks(session.data?.authenticated === true);
+  const removal = useDeleteBookmark();
 
   const list = bookmarks.data;
   const count = list?.items.length ?? 0;
@@ -84,7 +60,10 @@ export default function BookmarksPage() {
                       onRemove={() => {
                         if (removal.isPending) return;
                         setFailedId(null);
-                        removal.mutate(item.id);
+                        removal.mutate(item.id, {
+                          onSuccess: () => setFailedId(null),
+                          onError: () => setFailedId(item.id),
+                        });
                       }}
                       removeLabel={`${item.title} 북마크 삭제`}
                     >

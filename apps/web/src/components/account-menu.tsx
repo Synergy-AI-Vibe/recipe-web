@@ -3,11 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { anonymousSession } from "@recipe-web/api";
 import { showToast } from "@recipe-web/ui";
-import { sessionQueryKey } from "@/hooks/use-session";
-import { getSupabaseClient } from "@/lib/supabase/client";
+import { useLogout } from "@/queries/auth";
 
 export const withdrawOriginKey = "recipe-web:withdraw-origin";
 
@@ -17,16 +14,8 @@ export const AccountMenu = ({ name }: { name: string }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      const { error: signOutError } = await getSupabaseClient().auth.signOut();
-      if (signOutError) throw signOutError;
-    },
-    meta: { errorMode: "local" },
+  const logoutMutation = useLogout({
     onSuccess: () => {
-      queryClient.clear();
-      queryClient.setQueryData(sessionQueryKey, anonymousSession);
       setOpen(false);
       showToast("로그아웃되었습니다.");
       if (pathname === "/bookmarks" || pathname === "/account/withdraw") router.replace("/");

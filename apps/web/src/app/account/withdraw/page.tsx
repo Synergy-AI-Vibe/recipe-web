@@ -1,13 +1,10 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { anonymousSession, deleteAccount, getBookmarkCount } from "@recipe-web/api";
 import { showToast } from "@recipe-web/ui";
 import { withdrawOriginKey } from "@/components/account-menu";
-import { useSession, sessionQueryKey } from "@/hooks/use-session";
-import { getApiClient } from "@/lib/api-client";
-import { getSupabaseClient } from "@/lib/supabase/client";
+import { useSession, useWithdraw } from "@/queries/auth";
+import { useBookmarkCount } from "@/queries/bookmarks";
 
 const getOrigin = () => {
   const origin = sessionStorage.getItem(withdrawOriginKey);
@@ -18,27 +15,12 @@ const getOrigin = () => {
 
 export default function WithdrawPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const session = useSession();
-  const count = useQuery({
-    queryKey: ["bookmarks", "count"],
-    queryFn: () => getBookmarkCount(getApiClient()),
-    enabled: session.data?.authenticated === true,
-    meta: { errorMode: "local" },
-  });
-  const withdrawal = useMutation({
-    mutationFn: async () => {
-      await deleteAccount(getApiClient());
-      await getSupabaseClient().auth.signOut({ scope: "local" }).catch(() => undefined);
-    },
-    meta: { errorMode: "local" },
-    onSuccess: () => {
-      queryClient.clear();
-      queryClient.setQueryData(sessionQueryKey, anonymousSession);
-      sessionStorage.removeItem(withdrawOriginKey);
-      showToast("탈퇴가 완료되었습니다.");
-      router.replace("/");
-    },
+  const count = useBookmarkCount(session.data?.authenticated === true);
+  const withdrawal = useWithdraw(() => {
+    sessionStorage.removeItem(withdrawOriginKey);
+    showToast("탈퇴가 완료되었습니다.");
+    router.replace("/");
   });
 
   const goBack = () => {
