@@ -25,7 +25,7 @@ export const AnalysisOutcome = ({
   onReset,
 }: AnalysisOutcomeProps) => (
   <div className="pt-8">
-    {response?.ok === false && (
+    {response?.status === "no_recipe_found" && (
       <NoticeCard
         eyebrow="추출 실패"
         title={<h1>설명란에서 재료를 찾지 못했어요</h1>}
@@ -41,11 +41,11 @@ export const AnalysisOutcome = ({
         />
       </NoticeCard>
     )}
-    {error && (
+    {(error || response?.status === "error") && (
       <NoticeCard
         eyebrow="계산 실패"
         title={<h1>계산을 완료하지 못했어요</h1>}
-        description={error.message}
+        description={error?.message ?? (response?.status === "error" ? response.message : "계산에 실패했습니다.")}
         actions={
           <Button variant="ghost" onClick={onReset} className="text-b3">
             다시 입력하기
@@ -53,11 +53,11 @@ export const AnalysisOutcome = ({
         }
       />
     )}
-    {response?.ok === true && (
+    {response?.status === "success" && (
       <NoticeCard
         variant="quiet"
-        title={<h1>{response.recipe.title}</h1>}
-        description={`재료 ${response.ingredients.length}개의 가격을 계산했습니다.`}
+        title={<h1>{response.data.recipe.title}</h1>}
+        description={`재료 ${response.data.ingredients.length}개의 가격을 계산했습니다.`}
         actions={
           <Button variant="ghost" onClick={onReset} className="text-b3">
             다른 레시피 넣기
