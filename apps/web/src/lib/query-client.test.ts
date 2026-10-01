@@ -1,9 +1,8 @@
-import { ApiError, ApiRequestCanceledError } from "@recipe-web/api";
+import { ApiError, ApiRequestCanceledError, createApiClient } from "@recipe-web/api";
 import { isCancelledError, type QueryClient } from "@tanstack/react-query";
 import { delay, http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { getApiClient } from "@/lib/api-client";
 import { dismissErrorNotification, getErrorNotification } from "@/lib/error-notification";
 import { getQueryClient } from "@/lib/query-client";
 
@@ -191,7 +190,7 @@ describe("getQueryClient", () => {
   });
 
   it("Query 취소 신호를 Axios에 전달해 진행 중 요청을 중단한다", async () => {
-    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.example.test");
+    const apiClient = createApiClient({ baseURL: "https://api.example.test" });
     let markStarted!: () => void;
     const started = new Promise<void>((resolve) => { markStarted = resolve; });
     const handler = vi.fn(async () => {
@@ -205,7 +204,7 @@ describe("getQueryClient", () => {
     const result = client.fetchQuery({
       queryKey: ["recipes", 1],
       queryFn: async ({ signal }) => {
-        const response = getApiClient().get("/recipes/1", { signal });
+        const response = apiClient.get("/recipes/1", { signal });
         request = response;
         return (await response).data;
       },

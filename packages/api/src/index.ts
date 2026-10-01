@@ -2,6 +2,7 @@ export {
   createApiClient,
   type ApiClientOptions,
 } from "./client/create-api-client";
+export { sessionSchema, anonymousSession, type Session } from "./schemas/auth";
 export {
   ApiError,
   ApiRequestCanceledError,
