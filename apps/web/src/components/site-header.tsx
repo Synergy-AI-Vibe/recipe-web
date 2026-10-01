@@ -21,7 +21,17 @@ export const SiteHeader = () => {
     <>
       <header className="border-b border-line bg-surface">
         <div className="container flex min-h-14.5 items-center justify-between gap-4">
-          <Link href="/" className="text-h5 text-text" aria-label="레시비 홈">
+          <Link
+            href="/"
+            onClick={(event) => {
+              if (pathname === "/") {
+                event.preventDefault();
+                window.location.reload();
+              }
+            }}
+            className="text-h5 text-text"
+            aria-label="레시비 홈"
+          >
             레시비
           </Link>
           <nav aria-label="주 메뉴" className="flex items-center gap-4 text-n1">
