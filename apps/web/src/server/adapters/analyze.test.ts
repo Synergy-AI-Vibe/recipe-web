@@ -208,6 +208,17 @@ describe("toAnalyzeResponse: 성공", () => {
     expect(analyzeResponseSchema.safeParse(JSON.parse(JSON.stringify(response))).success).toBe(true);
   });
 
+  it("직접 입력은 제목이 의미 없으므로 사 먹는 가격을 추정하거나 찾지 않는다", async () => {
+    const poc = createPoc({ source: "manual", title: "직접 입력", channel: null });
+
+    const response = await toAnalyzeResponse(poc, { text: "돼지고기 200g" });
+
+    if (response.status !== "success") throw new Error("success expected");
+    expect(response.data.store).toBeNull();
+    expect(mocks.estimateStorePrice).not.toHaveBeenCalled();
+    expect(mocks.matchStorePrice).not.toHaveBeenCalled();
+  });
+
   it("제목이 없으면 이름 없는 레시피로 표시하고 사 먹는 가격은 찾지 않는다", async () => {
     const response = await toAnalyzeResponse(createPoc({ title: null }), { url: YOUTUBE_URL });
 

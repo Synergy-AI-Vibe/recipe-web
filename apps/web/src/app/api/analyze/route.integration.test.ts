@@ -66,17 +66,13 @@ describe("POST /api/analyze: 파이프라인·어댑터·라우트 전체 흐름
     expect(body.status).toBe("success");
   });
 
-  it("재료 6개, 합계 8,410원, 사 먹는 가격 19,000원으로 절약 금액을 계산한다", async () => {
+  it("재료 6개, 합계 8,410원이고 직접 입력은 사 먹는 가격이 없어 절약 금액은 0원이다", async () => {
     const { data } = await (await post({ text: RECIPE })).json();
 
     expect(data.ingredients).toHaveLength(6);
-    expect(data.totals).toMatchObject({
-      ingredientTotal: 8410,
-      basketTotal: 29300,
-      perServing: 8410,
-      savings: 10590,
-    });
-    expect(data.store).toMatchObject({ menuName: "김치찌개", avg: 19000 });
+    expect(data.totals).toMatchObject({ ingredientTotal: 8410, perServing: 8410, savings: 0 });
+    expect(data.store).toBeNull();
+    expect(mocks.estimateStorePrice).not.toHaveBeenCalled();
   });
 
   it("가격을 찾지 못한 재료는 경고에 담고 직접 입력 대상으로 표시한다", async () => {

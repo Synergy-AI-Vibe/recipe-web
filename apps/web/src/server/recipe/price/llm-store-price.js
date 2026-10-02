@@ -11,6 +11,11 @@
 import '../env.js';
 import { generateJsonWithRetry, pickModel } from '../llm/gemini.js';
 
+// 매장가는 보조 정보라 응답을 오래 붙잡지 않는다. 느리거나 실패하면 DB 값으로 넘어간다.
+const STORE_PRICE_TIMEOUT_MS = 12000;
+const STORE_PRICE_ATTEMPTS = 2;
+const STORE_PRICE_RETRY_DELAY_MS = 1000;
+
 // 모델은 프로세스당 한 번만 고른다 (normalize.js 와 동일한 이유).
 let defaultModelPromise = null;
 function defaultModel() {
@@ -90,8 +95,8 @@ export async function estimateStorePrice(menuTitle, opts = {}) {
       system: SYSTEM,
       user,
       schema: SCHEMA,
-      timeout: opts.timeout ?? 60000,
-    }));
+      timeout: opts.timeout ?? STORE_PRICE_TIMEOUT_MS,
+    }, { attempts: STORE_PRICE_ATTEMPTS, baseDelay: STORE_PRICE_RETRY_DELAY_MS }));
   } catch (e) {
     console.warn('[estimateStorePrice] generateContent 실패', e.message);
     return null;
