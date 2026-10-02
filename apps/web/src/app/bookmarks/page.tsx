@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Banner, List, ListRow } from "@recipe-web/ui";
+import { getBookmarkOpenTarget } from "@/lib/bookmark-input";
+import { useOpenBookmark } from "@/hooks/use-open-bookmark";
 import { useSession } from "@/queries/auth";
 import { useBookmarks, useDeleteBookmark } from "@/queries/bookmarks";
 
@@ -10,6 +13,7 @@ export default function BookmarksPage() {
   const [failedId, setFailedId] = useState<number | null>(null);
   const bookmarks = useBookmarks(session.data?.authenticated === true);
   const removal = useDeleteBookmark();
+  const opening = useOpenBookmark();
 
   const list = bookmarks.data;
   const count = list?.items.length ?? 0;
@@ -52,11 +56,25 @@ export default function BookmarksPage() {
                     <span className="text-b3 text-text-2">계산 결과에서 북마크를 누르면 여기에 쌓입니다.</span>
                   </li>
                 ) : (
-                  list.items.map((item) => (
+                  list.items.map((item) => {
+                    const target = getBookmarkOpenTarget(item);
+                    const kind = item.sourceType === "youtube" ? "유튜브" : "직접 입력";
+                    const meta =
+                      opening.openingId === item.id
+                        ? "계산 중…"
+                        : `${kind} · ${item.servings}인분${target.kind === "unavailable" ? " · 다시 열 수 없는 항목" : ""}`;
+                    const openProps =
+                      target.kind === "link"
+                        ? { href: target.href, linkAs: Link }
+                        : target.kind === "text"
+                          ? { onOpen: () => opening.openText(item, target.text) }
+                          : {};
+                    return (
                     <ListRow
                       key={item.id}
                       title={item.title}
-                      meta={`${item.sourceType === "youtube" ? "유튜브" : "직접 입력"} · ${item.servings}인분`}
+                      meta={meta}
+                      {...openProps}
                       onRemove={() => {
                         if (removal.isPending) return;
                         setFailedId(null);
@@ -70,8 +88,12 @@ export default function BookmarksPage() {
                       {failedId === item.id && (
                         <p role="alert" className="w-full text-c2 text-accent">삭제하지 못했습니다. 다시 시도해 주세요.</p>
                       )}
+                      {opening.failedId === item.id && (
+                        <p role="alert" className="w-full text-c2 text-accent">열지 못했습니다. 다시 시도해 주세요.</p>
+                      )}
                     </ListRow>
-                  ))
+                    );
+                  })
                 )}
               </List>
             </>

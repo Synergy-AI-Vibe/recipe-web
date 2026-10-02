@@ -1,19 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@recipe-web/ui";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { useLoginDialogStore } from "@/store/login-dialog-store";
 
 export const loginPendingKey = "recipe-web:login-pending";
 
 export const LoginDialog = () => {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
-  const pathname = usePathname();
+  const openRequest = useLoginDialogStore((state) => state.openRequest);
   const close = () => dialogRef.current?.close();
+
+  useEffect(() => {
+    if (openRequest === 0 || dialogRef.current?.open) return;
+    dialogRef.current?.showModal();
+  }, [openRequest]);
 
   const startKakaoLogin = async () => {
     if (pending) return;
@@ -22,7 +26,7 @@ export const LoginDialog = () => {
     sessionStorage.setItem(loginPendingKey, "1");
     try {
       const redirectTo = new URL("/auth/callback", window.location.origin);
-      redirectTo.searchParams.set("next", pathname);
+      redirectTo.searchParams.set("next", `${window.location.pathname}${window.location.search}`);
       const { error: authError } = await getSupabaseClient().auth.signInWithOAuth({
         provider: "kakao",
         options: { redirectTo: redirectTo.toString() },
@@ -37,23 +41,10 @@ export const LoginDialog = () => {
 
   return (
     <>
-      <button
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => {
-          dialogRef.current?.showModal();
-          setOpen(true);
-        }}
-        className="inline-flex min-h-11 items-center font-bold text-text hover:text-accent"
-      >
-        로그인
-      </button>
       <dialog
         ref={dialogRef}
         aria-labelledby="login-title"
         aria-describedby="login-description"
-        onClose={() => setOpen(false)}
         onClick={(event) => {
           if (event.target === event.currentTarget) close();
         }}

@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteBookmark, getBookmarkCount, getBookmarks, type BookmarkList } from "@recipe-web/api";
+import {
+  createBookmark,
+  deleteBookmark,
+  getBookmarkCount,
+  getBookmarks,
+  type BookmarkList,
+  type CreateBookmarkRequest,
+} from "@recipe-web/api";
 import { getApiClient } from "@/lib/api-client";
 
 export const bookmarkQueryKeys = {
@@ -24,6 +31,14 @@ export const useBookmarkCount = (enabled: boolean) =>
     enabled,
     meta: { errorMode: "local" },
   });
+
+export const useCreateBookmark = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateBookmarkRequest) => createBookmark(getApiClient(), input),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: bookmarkQueryKeys.all }),
+  });
+};
 
 export const useDeleteBookmark = () => {
   const queryClient = useQueryClient();
