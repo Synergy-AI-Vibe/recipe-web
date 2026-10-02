@@ -3,8 +3,22 @@ export {
   type ApiClientOptions,
 } from "./client/create-api-client";
 export { analyzeRecipe } from "./client/analyze-recipe";
-export { getBookmarks, deleteBookmark } from "./client/bookmarks";
-export { bookmarkSchema, bookmarkListSchema, type Bookmark, type BookmarkList } from "./schemas/bookmarks";
+export { getBookmarks, createBookmark, deleteBookmark } from "./client/bookmarks";
+export {
+  BOOKMARK_LIMIT,
+  BOOKMARK_RAW_TEXT_MAX_LENGTH,
+  BOOKMARK_SERVINGS_MAX,
+  BOOKMARK_TITLE_MAX_LENGTH,
+  bookmarkSchema,
+  bookmarkListSchema,
+  createBookmarkRequestSchema,
+  createBookmarkResponseSchema,
+  type Bookmark,
+  type BookmarkList,
+  type CreateBookmarkFailureReason,
+  type CreateBookmarkRequest,
+  type CreateBookmarkResponse,
+} from "./schemas/bookmarks";
 export { deleteAccount, getBookmarkCount } from "./client/auth";
 export { searchPantry, PANTRY_REQUEST_TIMEOUT_MS } from "./client/pantry";
 export {
