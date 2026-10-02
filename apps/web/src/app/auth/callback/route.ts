@@ -11,9 +11,13 @@ export async function GET(request: Request) {
   const destination = candidate?.origin === url.origin ? candidate : new URL("/", url.origin);
 
   if (code) {
-    const supabase = await getServerSupabaseClient();
+    const { supabase, responseHeaders } = await getServerSupabaseClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(destination);
+    if (!error) {
+      const response = NextResponse.redirect(destination);
+      Object.entries(responseHeaders).forEach(([name, value]) => response.headers.set(name, value));
+      return response;
+    }
   }
 
   return NextResponse.redirect(destination);

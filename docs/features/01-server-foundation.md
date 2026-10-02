@@ -137,6 +137,7 @@ supabase/
 - [api-common-policy.md](../api-common-policy.md): `NEXT_PUBLIC_API_BASE_URL` 서술을 "`/api` 고정, 같은 앱의 Route Handler"로 바꾼다. 이 문서는 결과 페이지 작업(#17)에서 `docs/features/`로 옮겨지므로 그 작업이 합쳐진 뒤에 고친다.
 - [frontend-backend-contract.md](../frontend-backend-contract.md): "백엔드가 맡는다"는 서술을 "같은 앱의 Route Handler가 맡는다"로 바꾼다. 위와 같은 이유로 #17 이후에 고친다.
 - `apps/web/package.json`: `server-only` 의존성을 추가했다.
+- [lib/supabase/server.ts](../../apps/web/src/lib/supabase/server.ts), [auth/callback/route.ts](../../apps/web/src/app/auth/callback/route.ts): 기존 로그인 콜백 코드다. 접속 도구가 `{ supabase, responseHeaders }`를 돌려주도록 바꾸고, 로그인 성공 후 이동 응답에 캐시 방지 헤더를 붙인다. 이 파일을 쓰는 곳은 콜백 하나뿐이다.
 
 ## 9. 테스트 / 완료 기준
 
