@@ -2,6 +2,8 @@ export { cn } from "./lib/merge-class-names";
 
 export { Banner } from "./components/banner/banner";
 export { Button } from "./components/button/button";
+export { Chip } from "./components/chip/chip";
+export { ChipAddInput } from "./components/chip/chip-add-input";
 export { List, ListRow } from "./components/list-row/list-row";
 export { NoticeCard } from "./components/notice-card/notice-card";
 export { Skeleton } from "./components/skeleton/skeleton";
