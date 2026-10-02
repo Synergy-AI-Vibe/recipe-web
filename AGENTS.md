@@ -38,6 +38,7 @@ apps/
 packages/
   api/            # @recipe-web/api — axios client + Zod schemas
   ui/             # @recipe-web/ui — shared UI components
+supabase/         # Supabase CLI config + DB migrations (shared DB with synergy-mvp: additive changes only)
 ```
 
 `apps/web` depends on `@recipe-web/api` and `@recipe-web/ui` via `workspace:*`. Both packages ship raw TypeScript and are transpiled by Next.js (`transpilePackages` in `apps/web/next.config.ts`) — no build step needed.
@@ -45,6 +46,8 @@ packages/
 ### apps/web/src/
 
 - `app/` — routes, layouts, pages (App Router)
+- `proxy.ts` — runs before every page/API request; refreshes the Supabase session (Next 16 name for middleware)
+- `server/` — server-only code (secret keys, admin DB access, external APIs). Never import it from client code
 - `components/` — app-specific UI (not shared with other apps)
 - `hooks/` — app-specific React hooks
 - `lib/` — app-specific utilities
@@ -67,6 +70,7 @@ These folders are currently placeholders (`.gitkeep`).
 
 - Real values go in `apps/web/.env.local` (gitignored, never commit).
 - `apps/web/.env.example` documents the required keys and is the only env file committed to git.
+- Server-only secrets (`SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, ...) must not use the `NEXT_PUBLIC_` prefix. Read them through `@/server/env`.
 
 ## Conventions
 
