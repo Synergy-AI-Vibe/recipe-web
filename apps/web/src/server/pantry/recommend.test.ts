@@ -130,6 +130,17 @@ describe("recommendMenus: AI 응답 정리", () => {
     expect(menu.extraIngredients.map((extra) => extra.name)).toEqual(["a", "b", "c", "d", "e", "f", "g", "h"]);
   });
 
+  it("이미 가진 재료를 추가 재료로 적었다면 사야 할 목록에서 뺀다", async () => {
+    const { recommendMenus } = await loadRecommend();
+    mocks.generateJsonWithRetry.mockResolvedValue(
+      llm([{ name: "찌개", uses: ["돼지고기"], extras: ["돼지고기", "두부", "신김치"] }]),
+    );
+
+    const [menu] = await recommendMenus(["돼지고기", "신김치"]);
+
+    expect(menu.extraIngredients.map((extra) => extra.name)).toEqual(["두부"]);
+  });
+
   it("메뉴가 하나도 없으면 빈 목록이다", async () => {
     const { recommendMenus } = await loadRecommend();
 

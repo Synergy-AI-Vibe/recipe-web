@@ -130,10 +130,11 @@ export const recommendMenus = async (rawIngredients: string[]): Promise<PantryMe
       name,
       description: String(menu?.description ?? "").trim(),
       uses: (menu?.uses ?? []).map((item) => String(item).trim()).filter((item) => owned.has(item)),
-      extras: [...new Set((menu?.extras ?? []).map((item) => String(item).trim()).filter(Boolean))].slice(
-        0,
-        MAX_EXTRAS_PER_MENU,
-      ),
+      extras: [
+        ...new Set(
+          (menu?.extras ?? []).map((item) => String(item).trim()).filter((item) => item && !owned.has(item)),
+        ),
+      ].slice(0, MAX_EXTRAS_PER_MENU),
     });
   }
 
