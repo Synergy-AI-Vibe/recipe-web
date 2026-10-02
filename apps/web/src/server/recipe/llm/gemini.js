@@ -130,7 +130,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * 그래도 안 되면 호출부가 다음 모델로 폴백할 수 있도록 에러를 그대로 올린다.
  */
 export async function generateJsonWithRetry(opts, { attempts = 4, baseDelay = 2000 } = {}) {
-  const pool = apiKeys();
+  const pool = keyPool();
   const keyRounds = Math.max(pool.length, 1);
   let last;
   for (let i = 0; i < attempts; i++) {
@@ -140,6 +140,7 @@ export async function generateJsonWithRetry(opts, { attempts = 4, baseDelay = 20
       last = e;
       // 429 는 키 풀이 있으면 다음 키로 넘어가서 즉시 재시도한다
       if (e.status === 429 && rotateApiKey()) continue;
+      if (e.status === 429 && /quota/i.test(e.message)) throw e;
       const transient = e.status === 503 || e.status === 429 || e.status >= 500;
       if (!transient || i === attempts - 1) throw e;
       await sleep(baseDelay * 2 ** i);
