@@ -4,6 +4,9 @@
 - 소스 코드는 각 워크스페이스 패키지의 `src/` 디렉토리 하위에 작성합니다 (`apps/web/src`, `packages/api/src`, `packages/ui/src`).
 - `apps/web` 내부에서 import 시 상대 경로(`../../`) 대신 `@/*` 절대 경로 alias를 사용합니다. (`@/*`는 `apps/web/src/*`에 매핑되어 있습니다.)
 - 다른 워크스페이스 패키지의 코드는 상대 경로가 아닌 패키지 이름(`@recipe-web/api`, `@recipe-web/ui`)으로 import합니다.
+- 서버에서만 실행해야 하는 코드(비밀 키, DB 관리 권한, 외부 API 호출)는 `apps/web/src/server/`에 둡니다. 비밀 값을 다루는 파일은 첫 줄에 `import "server-only"`를 넣어, 화면 코드가 가져오면 빌드가 실패하게 합니다.
+- 화면 코드(`components/`, `hooks/`, `app/`의 페이지)는 `@/server/*`를 import하지 않습니다. 서버 기능은 API 요청(`@recipe-web/api`)으로만 사용합니다.
+- 서버 전용 환경변수는 `NEXT_PUBLIC_` 접두어를 붙이지 않고 `@/server/env`로 읽습니다.
 
 ```ts
 // Bad
