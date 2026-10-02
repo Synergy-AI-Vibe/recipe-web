@@ -2,7 +2,7 @@ export {
   createApiClient,
   type ApiClientOptions,
 } from "./client/create-api-client";
-export { analyzeRecipe } from "./client/analyze-recipe";
+export { analyzeRecipe, ANALYZE_REQUEST_TIMEOUT_MS } from "./client/analyze-recipe";
 export { getBookmarks, createBookmark, deleteBookmark } from "./client/bookmarks";
 export {
   BOOKMARK_LIMIT,
@@ -34,6 +34,7 @@ export {
 } from "./schemas/pantry";
 export { sessionSchema, anonymousSession, type Session } from "./schemas/auth";
 export {
+  ANALYZE_TEXT_MAX_LENGTH,
   analyzeDataSchema,
   analyzeRequestSchema,
   analyzeResponseSchema,

@@ -1,8 +1,8 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createApiClient } from "./create-api-client";
-import { analyzeRecipe } from "./analyze-recipe";
+import { ANALYZE_REQUEST_TIMEOUT_MS, analyzeRecipe } from "./analyze-recipe";
 
 const server = setupServer();
 const client = createApiClient({ baseURL: "https://api.example.test/api" });
@@ -63,7 +63,10 @@ const successData = {
 };
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  vi.restoreAllMocks();
+});
 afterAll(() => server.close());
 
 describe("analyzeRecipe", () => {
@@ -110,5 +113,64 @@ describe("analyzeRecipe", () => {
     await expect(
       analyzeRecipe(client, { type: "youtube", url: "youtu.be/abc" }),
     ).rejects.toMatchObject({ kind: "validation" });
+  });
+
+  it("분석에 시간이 걸리므로 요청별 대기 시간을 60초로 보낸다", async () => {
+    server.use(
+      http.post("https://api.example.test/api/analyze", () =>
+        HttpResponse.json({ status: "no_recipe_found", videoTitle: null, thumbnailUrl: null, message: "없음" }),
+      ),
+    );
+    const post = vi.spyOn(client, "post");
+
+    await analyzeRecipe(client, { type: "text", text: "두부 1모" });
+
+    expect(ANALYZE_REQUEST_TIMEOUT_MS).toBe(60_000);
+    expect(post).toHaveBeenCalledWith(
+      "/analyze",
+      { text: "두부 1모" },
+      expect.objectContaining({ timeout: 60_000 }),
+    );
+  });
+
+  it("서버가 보낸 입력 오류(400) 안내 문구를 오류로 던지지 않고 결과 값으로 돌려준다", async () => {
+    server.use(
+      http.post(
+        "https://api.example.test/api/analyze",
+        () => HttpResponse.json({ status: "error", code: "INVALID_URL", message: "유튜브 주소 형식이 아니에요." }, { status: 400 }),
+      ),
+    );
+
+    await expect(analyzeRecipe(client, { type: "youtube", url: "https://example.com" })).resolves.toEqual({
+      status: "error",
+      code: "INVALID_URL",
+      message: "유튜브 주소 형식이 아니에요.",
+    });
+  });
+
+  it("서버가 보낸 내부 오류(500) 안내 문구도 결과 값으로 돌려준다", async () => {
+    server.use(
+      http.post(
+        "https://api.example.test/api/analyze",
+        () => HttpResponse.json({ status: "error", code: "INTERNAL", message: "계산에 실패했어요. 잠시 후 다시 시도해 주세요." }, { status: 500 }),
+      ),
+    );
+
+    await expect(analyzeRecipe(client, { type: "text", text: "두부 1모" })).resolves.toMatchObject({
+      status: "error",
+      code: "INTERNAL",
+    });
+  });
+
+  it("안내 문구가 없는 서버 오류(500)는 검증 오류로 처리한다", async () => {
+    server.use(http.post("https://api.example.test/api/analyze", () => new HttpResponse("Internal Server Error", { status: 500 })));
+
+    await expect(analyzeRecipe(client, { type: "text", text: "두부 1모" })).rejects.toMatchObject({ kind: "validation" });
+  });
+
+  it("그 밖의 HTTP 오류(503)는 오류로 던진다", async () => {
+    server.use(http.post("https://api.example.test/api/analyze", () => new HttpResponse(null, { status: 503 })));
+
+    await expect(analyzeRecipe(client, { type: "text", text: "두부 1모" })).rejects.toMatchObject({ kind: "http", status: 503 });
   });
 });
