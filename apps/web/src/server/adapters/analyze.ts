@@ -84,8 +84,8 @@ export const toAnalyzeResponse = async (poc: PocResult, input: AnalyzeInput): Pr
   const servings = poc.servings?.used ?? poc.pricing?.servings ?? 1;
   const ingredients = items.map(toRow);
   const title = poc.fetched.title ?? "";
-  const store = title ? await resolveStorePrice(title) : null;
   const isManual = poc.fetched.source === "manual";
+  const store = title && !isManual ? await resolveStorePrice(title) : null;
 
   const recipe: Recipe = {
     title: title || UNTITLED,
