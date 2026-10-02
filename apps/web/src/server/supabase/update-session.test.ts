@@ -89,6 +89,16 @@ describe("updateSession", () => {
     expect(response.headers.get("cache-control")).toBeNull();
   });
 
+  it("Supabase 주소 형식이 잘못되어 접속 도구를 만들 수 없어도 요청은 통과시킨다", async () => {
+    mocks.createServerClient.mockImplementation(() => {
+      throw new Error("Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.");
+    });
+
+    const response = await updateSession(createRequest());
+
+    expect(response.status).toBe(200);
+  });
+
   it("로그인 정보 확인이 실패해도 요청은 통과시킨다", async () => {
     mocks.getClaims.mockRejectedValue(new Error("network"));
 
