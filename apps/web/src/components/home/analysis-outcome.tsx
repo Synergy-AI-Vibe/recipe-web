@@ -53,17 +53,5 @@ export const AnalysisOutcome = ({
         }
       />
     )}
-    {response?.status === "success" && (
-      <NoticeCard
-        variant="quiet"
-        title={<h1>{response.data.recipe.title}</h1>}
-        description={`재료 ${response.data.ingredients.length}개의 가격을 계산했습니다.`}
-        actions={
-          <Button variant="ghost" onClick={onReset} className="text-b3">
-            다른 레시피 넣기
-          </Button>
-        }
-      />
-    )}
   </div>
 );

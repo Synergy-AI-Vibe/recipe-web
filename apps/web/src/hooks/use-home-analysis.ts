@@ -1,12 +1,18 @@
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import type { AnalyzeResponse } from "@recipe-web/api";
 import type {
   InputError,
   InputMode,
 } from "@/components/home/recipe-input";
 import { isYoutubeUrl } from "@/lib/is-youtube-url";
 import { useAnalyzeRecipe } from "@/queries/analyze";
+import { useResultStore } from "@/store/result-store";
+import type { ResultSource } from "@/types/result";
 
 export const useHomeAnalysis = () => {
+  const router = useRouter();
+  const openResult = useResultStore((state) => state.open);
   const [mode, setMode] = useState<InputMode>("youtube");
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
@@ -14,6 +20,12 @@ export const useHomeAnalysis = () => {
   const [inputError, setInputError] = useState<InputError>(null);
   const [recoveryError, setRecoveryError] = useState(false);
   const analyze = useAnalyzeRecipe();
+
+  const goToResult = (source: ResultSource) => (response: AnalyzeResponse) => {
+    if (response.status !== "success") return;
+    openResult(source, response.data);
+    router.push("/result");
+  };
 
   const resetAll = () => {
     setMode("youtube");
@@ -41,7 +53,8 @@ export const useHomeAnalysis = () => {
         return;
       }
       setInputError(null);
-      analyze.mutate({ type: "youtube", url: url.trim() });
+      const source: ResultSource = { type: "youtube", url: url.trim() };
+      analyze.mutate({ type: "youtube", url: source.url }, { onSuccess: goToResult(source) });
       return;
     }
 
@@ -50,7 +63,8 @@ export const useHomeAnalysis = () => {
       return;
     }
     setInputError(null);
-    analyze.mutate({ type: "text", text: text.trim() });
+    const source: ResultSource = { type: "text", text: text.trim() };
+    analyze.mutate({ type: "text", text: source.text }, { onSuccess: goToResult(source) });
   };
 
   const submitRecovery = (event: FormEvent<HTMLFormElement>) => {
@@ -63,19 +77,21 @@ export const useHomeAnalysis = () => {
     setRecoveryError(false);
     setMode("text");
     setText(recoveryText);
-    analyze.mutate({ type: "text", text: recoveryText.trim() });
+    const source: ResultSource = { type: "text", text: recoveryText.trim() };
+    analyze.mutate({ type: "text", text: source.text }, { onSuccess: goToResult(source) });
   };
 
+  const pending = analyze.isPending || analyze.data?.status === "success";
+
   return {
-    pending: analyze.isPending,
-    showOutcome:
-      !analyze.isPending && (analyze.data !== undefined || analyze.isError),
+    pending,
+    showOutcome: !pending && (analyze.data !== undefined || analyze.isError),
     input: {
       mode,
       url,
       text,
       error: inputError,
-      pending: analyze.isPending,
+      pending,
       onModeChange: switchMode,
       onUrlChange: (value: string) => {
         setUrl(value);
@@ -92,7 +108,7 @@ export const useHomeAnalysis = () => {
       error: analyze.error,
       recoveryText,
       recoveryError,
-      pending: analyze.isPending,
+      pending,
       onRecoveryTextChange: (value: string) => {
         setRecoveryText(value);
         setRecoveryError(false);

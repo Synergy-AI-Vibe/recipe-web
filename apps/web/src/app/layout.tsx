@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import { LoginDialog } from "@/components/login-dialog";
 import { Providers } from "@/components/providers";
 import { Header } from "@/components/layout/header/header";
 import { Footer } from "@/components/layout/footer";
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Header />
           {children}
           <Footer />
+          <LoginDialog />
         </Providers>
       </body>
     </html>

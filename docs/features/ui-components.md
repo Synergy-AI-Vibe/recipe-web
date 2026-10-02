@@ -1,8 +1,11 @@
 # UI 공용 컴포넌트 설계
 
+- 작성자: 김도혁
+- 날짜: 2026-09-28
+
 관련 이슈: #3 UI 공용 컴포넌트 구현
 
-`packages/ui`에 두 곳 이상에서 쓰이는 공용 컴포넌트 8개를 만든다. 값과 상태는 synergy `12_컴포넌트시트.html`, 토큰은 [theme.css](../packages/ui/src/styles/theme.css)(Storybook `Foundations`)를 따른다.
+`packages/ui`에 두 곳 이상에서 쓰이는 공용 컴포넌트 8개를 만든다. 값과 상태는 synergy `12_컴포넌트시트.html`, 토큰은 [theme.css](../../packages/ui/src/styles/theme.css)(Storybook `Foundations`)를 따른다.
 
 ## 컴포넌트 목록
 
