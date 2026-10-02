@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const ANALYZE_TEXT_MAX_LENGTH = 20000;
+
 /** 홈 입력 상태. API 서버에는 type 필드를 보내지 않는다. */
 export const analyzeRequestSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("youtube"), url: z.string() }),

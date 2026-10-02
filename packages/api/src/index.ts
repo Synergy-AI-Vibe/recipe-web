@@ -2,12 +2,13 @@ export {
   createApiClient,
   type ApiClientOptions,
 } from "./client/create-api-client";
-export { analyzeRecipe } from "./client/analyze-recipe";
+export { analyzeRecipe, ANALYZE_REQUEST_TIMEOUT_MS } from "./client/analyze-recipe";
 export { getBookmarks, deleteBookmark } from "./client/bookmarks";
 export { bookmarkSchema, bookmarkListSchema, type Bookmark, type BookmarkList } from "./schemas/bookmarks";
 export { deleteAccount, getBookmarkCount } from "./client/auth";
 export { sessionSchema, anonymousSession, type Session } from "./schemas/auth";
 export {
+  ANALYZE_TEXT_MAX_LENGTH,
   analyzeDataSchema,
   analyzeRequestSchema,
   analyzeResponseSchema,
